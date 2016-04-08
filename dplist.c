@@ -73,38 +73,42 @@ void dpl_free(dplist_t ** list) {
     free(*list);
 }
 
-dplist_t * dpl_insert_at_index(dplist_t * _list, void * value, int index, bool insert_copy) {
+dplist_t * dpl_insert_at_index(dplist_t * list, void * value, int index, bool insert_copy) {
     dplist_node_t * cNode;
     dplist_node_t * iNode;
-    DPLIST_ERR_HANDLER((_list == NULL),DPLIST_INVALID_ERROR,NULL);
+    DPLIST_ERR_HANDLER((list == NULL),DPLIST_INVALID_ERROR,NULL);
     cNode = malloc(sizeof(*cNode));
     DPLIST_ERR_HANDLER((cNode == NULL),DPLIST_MEMORY_ERROR,NULL);
     if (insert_copy) {
-        cNode->value = element_copy(value);
+        cNode->value = list->element_copy(value);
     } else {
         cNode->value = value;
     }
 
-    if (_list->head == NULL) _list->head = cNode;
+    if (list->head == NULL) {
+        cNode->next = NULL;
+        cNode->prev = NULL;
+        list->head = cNode;
+    }
     else {
         if (index <= 0) {
-            cNode->next = _list->head;
+            cNode->next = list->head;
             cNode->prev = NULL;
-            _list->head->prev = cNode;
-            _list->head = cNode;
-        } else if (index >= dpl_size(_list)) {
-            iNode = dpl_get_last_reference(_list);
+            list->head->prev = cNode;
+            list->head = cNode;
+        } else if (index >= dpl_size(list)) {
+            iNode = dpl_get_last_reference(list);
             iNode->next = cNode;
             cNode->prev = iNode;
         } else {
-            iNode = dpl_get_reference_at_index(_list,index);
+            iNode = dpl_get_reference_at_index(list,index);
             iNode->prev->next = cNode;
             cNode->prev = iNode->prev;
             cNode->next = iNode;
             iNode->prev = cNode;
         }
     }
-    return _list;
+    return list;
 }
 
 dplist_t * dpl_remove_at_index(dplist_t * list,int index, bool free_element) {
@@ -115,19 +119,19 @@ dplist_t * dpl_remove_at_index(dplist_t * list,int index, bool free_element) {
         if (index <= 0) {
             cNode = list->head;
             list->head = cNode->next;
-            list->head->prev = NULL;
-            if (free_element) element_free(&cNode->value);
+            if (list->head) list->head->prev = NULL;
+            if (free_element) list->element_free(&cNode->value);
             free(cNode);
-        } else if (index >= dpl_size(list)) {
+        } else if (index >= (dpl_size(list)-1)) {
             dplist_node_t * iNode = dpl_get_last_reference(list);
             iNode->prev->next = NULL;
-            if (free_element) element_free(&iNode->value);
+            if (free_element) list->element_free(&iNode->value);
             free(iNode);
         } else {
             dplist_node_t * iNode = dpl_get_reference_at_index(list, index);
             iNode->next->prev = iNode->prev;
             iNode->prev->next = iNode->next;
-            if (free_element) element_free(&iNode->value);
+            if (free_element) list->element_free(&iNode->value);
             free(iNode);
         }
     }
@@ -191,7 +195,7 @@ void * dpl_get_element_at_index(dplist_t * list,int index) {
     do {
         iNode = iNode->next;
         count++;
-        if (count == index) return &iNode->value;
+        if (count == index) return iNode->value;
     } while (iNode->next != NULL);
     return NULL;
 }
@@ -202,11 +206,15 @@ int dpl_get_index_of_element(dplist_t * list, void * value) {
     int index = 0;
 
     if (iNode == NULL) return (long)NULL;
-    while (iNode->next != NULL) {
-        if (element_compare(iNode->value,value) == 0) return index;
-        iNode = iNode->next;
-        index++;
+    do {
+        if (list->element_compare(iNode->value,value) == 0) return index;
+        if (iNode->next) {
+            iNode = iNode->next;
+            index++;
+        }
+        else break;
     }
+    while (1);
     return -1;
 }
 
@@ -234,8 +242,9 @@ dplist_node_t * dpl_get_next_reference(dplist_t * list, dplist_node_t * referenc
     if (!iNode || !reference) return NULL;
     else {
         while (iNode) {
-            iNode = iNode->next;
             if (iNode == reference) return iNode->next;
+            if (iNode->next) iNode = iNode->next;
+            else break;
         }
     }
     return NULL;
@@ -250,7 +259,8 @@ dplist_node_t * dpl_get_previous_reference(dplist_t * list, dplist_node_t * refe
     else {
         while (iNode) {
             if (iNode == reference) return iNode->prev;
-            iNode = iNode->next;
+            if (iNode->next) iNode = iNode->next;
+            else break;
         }
     }
     return NULL;
@@ -274,7 +284,7 @@ dplist_node_t * dpl_get_reference_of_element(dplist_t * list, void * element) {
 
     if (!iNode) return NULL;
     while(iNode) {
-        if (element_compare(iNode->value,element) == 0) return iNode;
+        if (list->element_compare(iNode->value,element) == 0) return iNode;
         iNode = iNode->next;
     }
     return NULL;
@@ -301,7 +311,8 @@ dplist_t * dpl_insert_at_reference(dplist_t * list, void * element, dplist_node_
     DPLIST_ERR_HANDLER((list == NULL),DPLIST_INVALID_ERROR,NULL);
     dplist_node_t * iNode;
     dplist_node_t * nNode;
-    dplist_node_t * tNode;
+    dplist_node_t * pNode;
+
     iNode = list->head;
 
     if (!iNode) return NULL;
@@ -309,15 +320,19 @@ dplist_t * dpl_insert_at_reference(dplist_t * list, void * element, dplist_node_
         if (iNode == reference) {
             nNode = malloc(sizeof(*nNode));
             DPLIST_ERR_HANDLER((nNode == NULL),DPLIST_MEMORY_ERROR,NULL);
-            tNode = iNode->next;
-            iNode->next = nNode;
-            nNode->prev = iNode;
-            nNode->next = tNode;
-            if (insert_copy) nNode->value = element_copy(element);
+            pNode = iNode->prev;
+
+            nNode->next = iNode;
+            nNode->prev = pNode;
+            pNode->next = nNode;
+            iNode->prev = nNode;
+
+            if (insert_copy) nNode->value = list->element_copy(element);
             else nNode->value = element;
             return list;
         }
-        iNode = iNode->next;
+        if (iNode->next) iNode = iNode->next;
+        else break;
     }
     return list;
 }
@@ -328,29 +343,39 @@ dplist_t * dpl_insert_sorted(dplist_t * list, void * value, bool insert_copy) {
     dplist_node_t * nNode;
     iNode = list->head;
 
-    if (!iNode) return NULL;
-    while (iNode) {
-        if (element_compare(value, iNode->value) == -1) {
-            iNode = iNode->next;
-        } else {
-            nNode = malloc(sizeof(*nNode));
-            DPLIST_ERR_HANDLER((nNode == NULL),DPLIST_MEMORY_ERROR,NULL);
-            if (insert_copy) nNode->value = element_copy(value);
-            else nNode->value = value;
+    nNode = malloc(sizeof(dplist_node_t));
+    if (insert_copy) nNode->value = list->element_copy(value);
+    else nNode->value = value;
+
+    while (true) {
+        if (list->element_compare(iNode->value,value) != -1) {
+            if (iNode->prev) {
+                iNode->prev->next = nNode;
+                nNode->prev = iNode->prev;
+            }
+            else {
+                list->head = nNode;
+                nNode->prev = NULL;
+            }
+
             nNode->next = iNode;
-            nNode->prev = iNode->prev;
-            iNode->prev->next = nNode;
             iNode->prev = nNode;
             return list;
         }
+        if (iNode->next) iNode = iNode->next;
+        else {
+            nNode->prev = iNode;
+            nNode->next = NULL;
+            iNode->next = nNode;
+            return list;
+        }
     }
-    return list;
 }
 
 dplist_t * dpl_remove_at_reference(dplist_t * list, dplist_node_t * reference, bool free_element) {
     DPLIST_ERR_HANDLER((list == NULL),DPLIST_INVALID_ERROR,NULL);
     dplist_node_t * iNode;
-    dplist_node_t * rNode;
+    dplist_node_t *rNode = NULL;
     iNode = list->head;
 
     if (!iNode) return list;
@@ -360,9 +385,9 @@ dplist_t * dpl_remove_at_reference(dplist_t * list, dplist_node_t * reference, b
         iNode = iNode->next;
     }
     if (rNode) {
-        if (free_element) element_free(&rNode->value);
-        rNode->prev->next = rNode->next;
-        if (!rNode->next) rNode->next->prev = rNode->prev;
+        if (free_element) list->element_free(&rNode->value);
+        if (rNode->prev) rNode->prev->next = rNode->next;
+        if (rNode->next) rNode->next->prev = rNode->prev;
         free(rNode);
     }
     return list;
@@ -375,10 +400,10 @@ dplist_t * dpl_remove_element(dplist_t * list, void * value, bool free_element) 
     if (!iNode) return NULL;
 
     while (iNode) {
-        if (element_compare(value, iNode->value)== 0) {
-            iNode->prev->next = iNode->next;
-            if (!iNode->next) iNode->next->prev = iNode->prev;
-            if (free_element) element_free(&iNode->value);
+        if (list->element_compare(value, iNode->value)== 0) {
+            if (iNode->prev) iNode->prev->next = iNode->next;
+            if (iNode->next) iNode->next->prev = iNode->prev;
+            if (free_element) list->element_free(&iNode->value);
             free(iNode);
             return list;
         }

@@ -19,7 +19,7 @@ dplist_t * dpl_create(
                 int (*element_compare)(void * x, void * y)
             );
 void dpl_free(dplist_t ** _list);
-dplist_t * dpl_insert_at_index(dplist_t * _list, void * value, int index, bool insert_copy);
+dplist_t * dpl_insert_at_index(dplist_t * list, void * value, int index, bool insert_copy);
 dplist_t * dpl_remove_at_index(dplist_t * list,int index, bool free_element);
 int dpl_size(dplist_t * list);
 dplist_node_t * dpl_get_reference_at_index(dplist_t * list,int index);
@@ -36,7 +36,6 @@ dplist_t * dpl_insert_at_reference(dplist_t * list, void * value,dplist_node_t *
 dplist_t * dpl_insert_sorted(dplist_t * list, void * value, bool insert_copy);
 dplist_t * dpl_remove_at_reference(dplist_t * list,dplist_node_t * reference,bool free_element);
 dplist_t * dpl_remove_element(dplist_t * list, void * value, bool free_element);
-
 
 
 #endif // DPLIST_H
