@@ -40,16 +40,16 @@ int main()
 
     dpl_insert_at_index(list,&element,0,true);
     element = 5;
-    dpl_insert_at_index(list,&element,0,true);
+    dpl_insert_at_index(list,&element,5,true);
     element = 1;
     dpl_insert_at_index(list,&element,0,true);
     printf("List: %d %d %d\n",*(int*)dpl_get_element_at_index(list,0),*(int*)dpl_get_element_at_index(list,1),*(int*)dpl_get_element_at_index(list,2));
-    element = 5;
-    /*iNode = dpl_get_reference_of_element(list,&element);
-    dpl_remove_at_reference(list,iNode,true);*/
-    dpl_remove_element(list,&element,true);
-    element = 2;
-    dpl_insert_sorted(list,&element,true);
-    printf("List: %d %d %d %d\n",*(int*)dpl_get_element_at_index(list,0),*(int*)dpl_get_element_at_index(list,1),*(int*)dpl_get_element_at_index(list,2),*(int*)dpl_get_element_at_index(list,3));
+    dpl_remove_at_index(list,-1,true);
+    printf("List: %d %d %d\n",*(int*)dpl_get_element_at_index(list,0),*(int*)dpl_get_element_at_index(list,1),*(int*)dpl_get_element_at_index(list,2));
+    iNode = dpl_get_reference_at_index(list,0);
+    dpl_remove_at_index(list,0,true);
+    dpl_remove_at_reference(list,iNode,true);
+    dpl_free(&list);
+
     return 0;
 }

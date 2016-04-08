@@ -62,13 +62,13 @@ dplist_t * dpl_create(
 void dpl_free(dplist_t ** list) {
     DPLIST_ERR_HANDLER((list == NULL || *list == NULL),DPLIST_INVALID_ERROR);
     dplist_node_t * cNode = (*list)->head;
-    element_free = (*list)->element_free;
+    (*list)->element_free = (*list)->element_free;
 
     while (cNode) {
         dplist_node_t * tNode;
         tNode = cNode;
         cNode = cNode->next;
-        element_free((void*)tNode);
+        (*list)->element_free((void*)tNode);
     }
     free(*list);
 }
@@ -100,6 +100,7 @@ dplist_t * dpl_insert_at_index(dplist_t * list, void * value, int index, bool in
             iNode = dpl_get_last_reference(list);
             iNode->next = cNode;
             cNode->prev = iNode;
+            cNode->next = NULL;
         } else {
             iNode = dpl_get_reference_at_index(list,index);
             iNode->prev->next = cNode;
@@ -145,9 +146,11 @@ int dpl_size(dplist_t * list) {
 
     iNode = list->head;
 
-    while (iNode) {
-        size++;
-        iNode = iNode->next;
+    while (true) {
+        if (iNode->next) {
+            size++;
+            iNode = iNode->next;
+        } else break;
     }
     return size;
 }
