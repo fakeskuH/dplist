@@ -146,11 +146,9 @@ int dpl_size(dplist_t * list) {
 
     iNode = list->head;
 
-    while (true) {
-        if (iNode->next) {
-            size++;
-            iNode = iNode->next;
-        } else break;
+    while (iNode) {
+        size++;
+        iNode = iNode->next;
     }
     return size;
 }
@@ -208,16 +206,11 @@ int dpl_get_index_of_element(dplist_t * list, void * value) {
     dplist_node_t * iNode = list->head;
     int index = 0;
 
-    if (iNode == NULL) return (long)NULL;
-    do {
+    while (iNode) {
         if (list->element_compare(iNode->value,value) == 0) return index;
-        if (iNode->next) {
-            iNode = iNode->next;
-            index++;
-        }
-        else break;
+        iNode = iNode->next;
+        index++;
     }
-    while (1);
     return -1;
 }
 
@@ -413,4 +406,14 @@ dplist_t * dpl_remove_element(dplist_t * list, void * value, bool free_element) 
         iNode = iNode->next;
     }
     return list;
+}
+
+void dpl_printlist(dplist_t * list) {
+    dplist_node_t * iNode = list->head;
+    printf("List:");
+    while (iNode) {
+        printf("\t[%d]",*(int*)dpl_get_element_at_reference(list,iNode));
+        iNode = iNode->next;
+    }
+    printf("\n");
 }
