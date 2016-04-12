@@ -36,6 +36,6 @@ dplist_t * dpl_insert_at_reference(dplist_t * list, void * value,dplist_node_t *
 dplist_t * dpl_insert_sorted(dplist_t * list, void * value, bool insert_copy);
 dplist_t * dpl_remove_at_reference(dplist_t * list,dplist_node_t * reference,bool free_element);
 dplist_t * dpl_remove_element(dplist_t * list, void * value, bool free_element);
-void printlist(dplist_t * list);
+void dpl_printlist(dplist_t * list);
 
 #endif // DPLIST_H

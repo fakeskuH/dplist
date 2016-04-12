@@ -164,11 +164,11 @@ dplist_node_t * dpl_get_reference_at_index(dplist_t * list, int index) {
     if (index <= 0) return dpl_get_first_reference(list);
     if (index >= dpl_size(list)) return dpl_get_last_reference(list);
     if (iNode == NULL) return (void*)NULL;
-    do {
+    while (iNode) {
+        if (count == index) return iNode;
         iNode = iNode->next;
         count++;
-        if (count == index) return iNode;
-    } while (iNode->next != NULL);
+    }
     return NULL;
 }
 
@@ -238,8 +238,10 @@ dplist_node_t * dpl_get_next_reference(dplist_t * list, dplist_node_t * referenc
     if (!iNode || !reference) return NULL;
     else {
         while (iNode) {
-            if (iNode == reference) return iNode->next;
-            if (iNode->next) iNode = iNode->next;
+            if (iNode == reference) {
+                if (iNode->next) return iNode->next;
+                else return NULL;
+            } else if (iNode->next) iNode = iNode->next;
             else break;
         }
     }
@@ -254,8 +256,10 @@ dplist_node_t * dpl_get_previous_reference(dplist_t * list, dplist_node_t * refe
     if (!iNode || !reference) return NULL;
     else {
         while (iNode) {
-            if (iNode == reference) return iNode->prev;
-            if (iNode->next) iNode = iNode->next;
+            if (iNode == reference) {
+                if (iNode->prev) return iNode->prev;
+                else return NULL;
+            } else if (iNode->next) iNode = iNode->next;
             else break;
         }
     }
@@ -266,7 +270,8 @@ void * dpl_get_element_at_reference(dplist_t * list, dplist_node_t * reference) 
     dplist_node_t * iNode;
     iNode = list->head;
 
-    if (!iNode || !reference) return NULL;
+    if (!iNode) return NULL;
+    if (!reference) return dpl_get_last_reference(list)->value;
     while (iNode) {
         if (iNode == reference) return iNode->value;
         iNode = iNode->next;
@@ -316,11 +321,15 @@ dplist_t * dpl_insert_at_reference(dplist_t * list, void * element, dplist_node_
         if (iNode == reference) {
             nNode = malloc(sizeof(*nNode));
             DPLIST_ERR_HANDLER((nNode == NULL),DPLIST_MEMORY_ERROR,NULL);
-            pNode = iNode->prev;
-
+            if (iNode->prev) {
+                pNode = iNode->prev;
+                pNode->next = nNode;
+                nNode->prev = pNode;
+            } else {
+                list->head = nNode;
+                nNode->prev = NULL;
+            }
             nNode->next = iNode;
-            nNode->prev = pNode;
-            pNode->next = nNode;
             iNode->prev = nNode;
 
             if (insert_copy) nNode->value = list->element_copy(element);
@@ -417,3 +426,4 @@ void dpl_printlist(dplist_t * list) {
     }
     printf("\n");
 }
+
